@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=420">
+  <title>Deep Scraper Pro v2</title>
+  <style>
+    :root {
+      --bg: #0f172a; --surface: #1e293b; --surface-alt: #334155;
+      --border: #334155; --border-active: #475569;
+      --accent: #38bdf8; --accent-hover: #0ea5e9;
+      --text: #f8fafc; --text-muted: #94a3b8;
+      --green: #22c55e; --red: #ef4444; --blue: #3b82f6;
+      --yellow: #f59e0b; --purple: #a78bfa; --orange: #fb923c;
+    }
+
+    body {
+      margin: 0; width: 420px; background: var(--bg); color: var(--text);
+      font-family: system-ui, -apple-system, sans-serif; font-size: 13px;
+      padding: 16px; box-sizing: border-box;
+    }
+
+    .header { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+    .logo {
+      width: 30px; height: 30px; background: linear-gradient(135deg, var(--accent), var(--purple));
+      color: #000; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 16px;
+    }
+    .title { font-weight: 700; font-size: 17px; }
+    .version { font-size: 10px; color: var(--accent); background: var(--surface); padding: 2px 6px; border-radius: 4px; }
+    .subtitle { color: var(--text-muted); font-size: 11px; margin-bottom: 12px; }
+
+    .tab-url {
+      background: var(--surface); padding: 7px 10px; border-radius: 6px;
+      border: 1px solid var(--border); margin-bottom: 12px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-muted); font-size: 12px;
+    }
+    .error-msg {
+      display: none; background: rgba(239, 68, 68, 0.1); color: var(--red);
+      padding: 8px; border-radius: 6px; margin-bottom: 12px; border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    .btn-main {
+      width: 100%; padding: 12px; background: var(--accent); color: #0f172a;
+      border: none; border-radius: 8px; font-weight: 700; font-size: 13px;
+      cursor: pointer; transition: all 0.2s; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .btn-main:hover:not(:disabled) { background: var(--accent-hover); transform: translateY(-1px); }
+    .btn-main:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-main.stop { background: var(--red); color: white; }
+
+    .status-bar {
+      display: flex; justify-content: space-between; align-items: center;
+      background: var(--surface); padding: 8px 12px; border-radius: 6px;
+      margin: 12px 0; border: 1px solid var(--border);
+    }
+    .status-indicator { display: flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 12px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); }
+    .dot.extracting { background: var(--accent); animation: pulse 1.5s infinite; }
+    .dot.complete { background: var(--green); }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; box-shadow: 0 0 8px var(--accent); } }
+    .timer { font-family: monospace; font-size: 13px; color: var(--accent); }
+
+    /* Stats Grid — 3 columns */
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+    .stat-card {
+      background: var(--surface); padding: 10px 8px; border-radius: 6px; text-align: center;
+      border: 1px solid var(--border); transition: border-color 0.3s;
+    }
+    .stat-val { font-size: 20px; font-weight: 600; margin-bottom: 2px; font-family: monospace; }
+    .stat-label { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-card.highlight { border-color: var(--accent); }
+
+    /* Indicator badges */
+    .badges { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+    .badge {
+      font-size: 10px; padding: 3px 8px; border-radius: 4px;
+      background: var(--surface); border: 1px solid var(--border); color: var(--text-muted);
+    }
+    .badge.active { border-color: var(--green); color: var(--green); background: rgba(34,197,94,0.1); }
+    .badge.warning { border-color: var(--yellow); color: var(--yellow); background: rgba(245,158,11,0.1); }
+    .badge.danger { border-color: var(--red); color: var(--red); background: rgba(239,68,68,0.1); }
+    .badge.info { border-color: var(--blue); color: var(--blue); background: rgba(59,130,246,0.1); }
+    .badge.purple { border-color: var(--purple); color: var(--purple); background: rgba(167,139,250,0.1); }
+
+    /* Export Buttons */
+    .export-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .btn-export {
+      padding: 8px 4px; background: var(--surface-alt); color: var(--text);
+      border: 1px solid var(--border); border-radius: 6px; cursor: pointer;
+      font-weight: 500; transition: all 0.2s; font-size: 11px; text-align: center;
+    }
+    .btn-export:hover:not(:disabled) { background: var(--border-active); }
+    .btn-export:disabled { opacity: 0.3; cursor: not-allowed; }
+    .btn-export.featured { background: var(--surface); border-color: var(--accent); color: var(--accent); }
+
+    .debugger-notice {
+      display: none; margin-top: 12px; padding: 8px; font-size: 10px;
+      background: rgba(59, 130, 246, 0.1); color: var(--blue); border-radius: 6px;
+    }
+
+    /* Gaps section */
+    .gaps-section {
+      display: none; margin-top: 12px; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 6px; padding: 10px;
+    }
+    .gaps-section h3 { font-size: 11px; color: var(--yellow); margin: 0 0 6px 0; text-transform: uppercase; letter-spacing: 0.5px; }
+    .gap-item { font-size: 11px; color: var(--text-muted); padding: 3px 0; border-bottom: 1px solid var(--border); }
+    .gap-item:last-child { border-bottom: none; }
+    .gap-item::before { content: "! "; color: var(--yellow); font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="logo">D</div>
+    <div class="title">Deep Scraper Pro</div>
+    <div class="version">v2</div>
+  </div>
+  <div class="subtitle">Network-aware crawler assistant</div>
+
+  <div class="tab-url" id="tabUrl">Loading...</div>
+  <div class="error-msg" id="errorMsg"></div>
+
+  <button class="btn-main" id="btnMain">Start Analysis</button>
+
+  <div class="status-bar">
+    <div class="status-indicator">
+      <div class="dot" id="statusDot"></div>
+      <span id="statusText">Idle</span>
+    </div>
+    <span class="timer" id="timer">00:00</span>
+  </div>
+
+  <div class="badges" id="badges"></div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-val" id="statDom">0</div>
+      <div class="stat-label">DOM</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" id="statApi">0</div>
+      <div class="stat-label">API Calls</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" id="statTrpc">0</div>
+      <div class="stat-label">tRPC</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" id="statJson">0</div>
+      <div class="stat-label">JSON</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" id="statActions">0</div>
+      <div class="stat-label">Actions</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" id="statTables">0</div>
+      <div class="stat-label">Tbl Changes</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" id="statRsc">0</div>
+      <div class="stat-label">RSC</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" id="statPre">0</div>
+      <div class="stat-label">Pre-captured</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" id="statCookies">0</div>
+      <div class="stat-label">Cookies</div>
+    </div>
+  </div>
+
+  <div class="export-row">
+    <button class="btn-export featured" id="btnHar" disabled>HAR</button>
+    <button class="btn-export" id="btnJson" disabled>JSON</button>
+    <button class="btn-export" id="btnCsv" disabled>CSV</button>
+    <button class="btn-export" id="btnMd" disabled>MD</button>
+    <button class="btn-export" id="btnTxt" disabled>TXT</button>
+  </div>
+
+  <div class="gaps-section" id="gapsSection">
+    <h3>Data Completeness Gaps</h3>
+    <div id="gapsList"></div>
+  </div>
+
+  <div class="debugger-notice" id="debuggerNotice">
+    CDP Debugger active. You may see a browser banner — this is normal and will vanish when finished.
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

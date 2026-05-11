@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "Deep Scraper Pro",
+  "version": "2.0.0",
+  "description": "Network-aware crawler assistant — hooks fetch/XHR, records user actions, detects Next.js & Cloudflare Turnstile, infers JSON schemas, exports HAR timeline.",
+  "permissions": [
+    "scripting",
+    "storage",
+    "tabs",
+    "cookies",
+    "debugger",
+    "downloads",
+    "webNavigation"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["injected-page.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
